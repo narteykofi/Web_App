@@ -110,6 +110,31 @@ function setFeedback(message = "", isError = true) {
   els.authFeedback.style.color = isError ? "var(--danger)" : "var(--success)";
 }
 
+function friendlyError(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "auth/operation-not-allowed":
+      return "Email/Password sign-in is disabled in Firebase. Enable it in Firebase Console > Authentication > Sign-in method.";
+    case "auth/unauthorized-domain":
+      return "This site domain is not authorized in Firebase. Add your Netlify domain in Firebase Console > Authentication > Settings > Authorized domains.";
+    case "auth/email-already-in-use":
+      return "That email already has an account. Sign in instead, or use password reset.";
+    case "auth/invalid-credential":
+    case "auth/invalid-login-credentials":
+      return "Invalid email or password.";
+    case "auth/user-not-found":
+      return "No account exists for that email yet.";
+    case "auth/weak-password":
+      return "Choose a stronger password with at least 6 characters.";
+    case "permission-denied":
+    case "firestore/permission-denied":
+      return "Firebase permissions blocked this action. Check your Firestore rules and signed-in role.";
+    default:
+      return error?.message || "Something went wrong.";
+  }
+}
+
 function cap(value = "") {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -250,7 +275,7 @@ function renderProfiles() {
         await updateDoc(doc(db, "profiles", event.target.dataset.profileId), { role: event.target.value });
         toast("Role updated.");
       } catch (error) {
-        toast(error.message, "error");
+        toast(friendlyError(error), "error");
       }
     });
   });
@@ -377,17 +402,17 @@ function subscribeToData() {
     state.profiles = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
     state.profile = state.profiles.find((profile) => profile.uid === state.user?.uid) || state.profile;
     renderAll();
-  }, (error) => toast(error.message, "error")));
+  }, (error) => toast(friendlyError(error), "error")));
 
   state.unsubscribers.push(onSnapshot(query(collection(db, "students")), (snapshot) => {
     state.students = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
     renderAll();
-  }, (error) => toast(error.message, "error")));
+  }, (error) => toast(friendlyError(error), "error")));
 
   state.unsubscribers.push(onSnapshot(query(collection(db, "classes")), (snapshot) => {
     state.classes = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
     renderAll();
-  }, (error) => toast(error.message, "error")));
+  }, (error) => toast(friendlyError(error), "error")));
 
   state.unsubscribers.push(onSnapshot(query(collection(db, "announcements")), (snapshot) => {
     state.announcements = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }))
@@ -397,7 +422,7 @@ function subscribeToData() {
         return bTime - aTime;
       });
     renderAll();
-  }, (error) => toast(error.message, "error")));
+  }, (error) => toast(friendlyError(error), "error")));
 }
 
 async function uploadProfileImage(file, uid) {
@@ -518,7 +543,7 @@ els.authForm.addEventListener("submit", async (event) => {
     }
     els.authForm.reset();
   } catch (error) {
-    setFeedback(error.message, true);
+    setFeedback(friendlyError(error), true);
   }
 });
 
@@ -533,7 +558,7 @@ els.resetPasswordBtn.addEventListener("click", async () => {
     await sendPasswordResetEmail(auth, email);
     setFeedback("Password reset email sent.", false);
   } catch (error) {
-    setFeedback(error.message, true);
+    setFeedback(friendlyError(error), true);
   }
 });
 
@@ -542,7 +567,7 @@ els.settingsResetPasswordBtn.addEventListener("click", async () => {
     await sendPasswordResetEmail(auth, state.user.email);
     toast("Reset link sent to your email.");
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -561,7 +586,7 @@ els.themeToggle.addEventListener("click", async () => {
     await updateDoc(doc(db, "profiles", state.user.uid), { theme: nextTheme });
     toast(`Theme changed to ${nextTheme}.`);
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -578,7 +603,7 @@ els.seedPeopleBtn.addEventListener("click", async () => {
   try {
     await seedExampleData();
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -596,7 +621,7 @@ els.studentForm?.addEventListener("submit", async (event) => {
     els.studentForm.reset();
     toast("Student saved.");
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -615,7 +640,7 @@ els.classForm?.addEventListener("submit", async (event) => {
     els.classForm.reset();
     toast("Class published.");
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -634,7 +659,7 @@ els.announcementForm?.addEventListener("submit", async (event) => {
     els.announcementForm.reset();
     toast("Announcement posted.");
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -659,7 +684,7 @@ els.profileForm?.addEventListener("submit", async (event) => {
     const fileInput = document.getElementById("profile-image");
     if (fileInput) fileInput.value = "";
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
 
@@ -677,7 +702,7 @@ els.passwordForm?.addEventListener("submit", async (event) => {
   } catch (error) {
     const message = error.code === "auth/requires-recent-login"
       ? "For security reasons, use the reset email link or sign in again before changing password."
-      : error.message;
+      : friendlyError(error);
     toast(message, "error");
   }
 });
@@ -706,6 +731,6 @@ onAuthStateChanged(auth, async (user) => {
     subscribeToData();
     renderAll();
   } catch (error) {
-    toast(error.message, "error");
+    toast(friendlyError(error), "error");
   }
 });
