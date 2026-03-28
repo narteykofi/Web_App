@@ -22,12 +22,7 @@ import {
   setDoc,
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytes
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { cloudinaryConfig, cloudinaryReady } from "./cloudinary-config.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCKVK9rUS8rG41sbqA9pmy1RBuE_rObm6w",
@@ -42,7 +37,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 analyticsSupported().then((ok) => {
   if (ok) getAnalytics(app);
@@ -331,6 +325,7 @@ function syncSettingsForm() {
   els.profileForm.fullName.value = state.profile.fullName || "";
   els.profileForm.title.value = state.profile.title || "";
   els.profileForm.theme.value = state.profile.theme || "dark";
+  els.profileForm.avatarUrl.value = state.profile.avatarUrl || "";
   els.profilePreview.style.backgroundImage = avatarStyle(state.profile.avatarUrl);
   els.sidebarPhoto.style.backgroundImage = avatarStyle(state.profile.avatarUrl);
   els.sidebarName.textContent = state.profile.fullName || "Portal User";
@@ -406,9 +401,28 @@ function subscribeToData() {
 }
 
 async function uploadProfileImage(file, uid) {
-  const fileRef = ref(storage, `profile-pictures/${uid}/${Date.now()}-${file.name}`);
-  await uploadBytes(fileRef, file);
-  return getDownloadURL(fileRef);
+  if (!cloudinaryReady()) {
+    throw new Error("Add your Cloudinary cloud name and unsigned upload preset in js/cloudinary-config.js.");
+  }
+
+  const payload = new FormData();
+  payload.append("file", file);
+  payload.append("upload_preset", cloudinaryConfig.unsignedUploadPreset);
+  payload.append("folder", cloudinaryConfig.folder);
+  payload.append("public_id", `${uid}-${Date.now()}`);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, {
+    method: "POST",
+    body: payload
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || "Cloudinary upload failed.");
+  }
+
+  const result = await response.json();
+  return result.secure_url;
 }
 
 async function seedExampleData() {
@@ -630,7 +644,8 @@ els.profileForm?.addEventListener("submit", async (event) => {
   const file = formData.get("profileImage");
 
   try {
-    let avatarUrl = state.profile?.avatarUrl || "";
+    let avatarUrl = String(formData.get("avatarUrl") || "").trim();
+    if (!avatarUrl) avatarUrl = state.profile?.avatarUrl || "";
     if (file && file.size) {
       avatarUrl = await uploadProfileImage(file, state.user.uid);
     }
