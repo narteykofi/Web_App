@@ -85,6 +85,7 @@ const els = {
   sidebarRole: document.getElementById("sidebar-role"),
   sidebarPhoto: document.getElementById("sidebar-photo"),
   profilePreview: document.getElementById("profile-preview"),
+  profileImageInput: document.getElementById("profile-image"),
   profileForm: document.getElementById("profile-form"),
   studentForm: document.getElementById("student-form"),
   classForm: document.getElementById("class-form"),
@@ -119,7 +120,7 @@ function friendlyError(error) {
     case "auth/unauthorized-domain":
       return "This site domain is not authorized in Firebase. Add your Netlify domain in Firebase Console > Authentication > Settings > Authorized domains.";
     case "auth/email-already-in-use":
-      return "That email already has an account. Sign in instead, or use password reset.";
+      return "Account already exists. Sign in instead, or use password reset.";
     case "auth/invalid-credential":
     case "auth/invalid-login-credentials":
       return "Invalid email or password.";
@@ -350,7 +351,6 @@ function syncSettingsForm() {
   els.profileForm.fullName.value = state.profile.fullName || "";
   els.profileForm.title.value = state.profile.title || "";
   els.profileForm.theme.value = state.profile.theme || "dark";
-  els.profileForm.avatarUrl.value = state.profile.avatarUrl || "";
   els.profilePreview.style.backgroundImage = avatarStyle(state.profile.avatarUrl);
   els.sidebarPhoto.style.backgroundImage = avatarStyle(state.profile.avatarUrl);
   els.sidebarName.textContent = state.profile.fullName || "Portal User";
@@ -448,6 +448,28 @@ async function uploadProfileImage(file, uid) {
 
   const result = await response.json();
   return result.secure_url;
+}
+
+async function saveProfileAvatar(file) {
+  if (!state.user || !file) return;
+
+  const localPreviewUrl = URL.createObjectURL(file);
+  els.profilePreview.style.backgroundImage = avatarStyle(localPreviewUrl);
+  els.sidebarPhoto.style.backgroundImage = avatarStyle(localPreviewUrl);
+  toast("Uploading profile picture...");
+
+  try {
+    const avatarUrl = await uploadProfileImage(file, state.user.uid);
+    await updateDoc(doc(db, "profiles", state.user.uid), { avatarUrl });
+    toast("Profile picture updated.");
+  } catch (error) {
+    els.profilePreview.style.backgroundImage = avatarStyle(state.profile?.avatarUrl);
+    els.sidebarPhoto.style.backgroundImage = avatarStyle(state.profile?.avatarUrl);
+    toast(friendlyError(error), "error");
+  } finally {
+    URL.revokeObjectURL(localPreviewUrl);
+    if (els.profileImageInput) els.profileImageInput.value = "";
+  }
 }
 
 async function seedExampleData() {
@@ -666,26 +688,23 @@ els.announcementForm?.addEventListener("submit", async (event) => {
 els.profileForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(els.profileForm);
-  const file = formData.get("profileImage");
 
   try {
-    let avatarUrl = String(formData.get("avatarUrl") || "").trim();
-    if (!avatarUrl) avatarUrl = state.profile?.avatarUrl || "";
-    if (file && file.size) {
-      avatarUrl = await uploadProfileImage(file, state.user.uid);
-    }
     await updateDoc(doc(db, "profiles", state.user.uid), {
       fullName: String(formData.get("fullName") || "").trim(),
       title: String(formData.get("title") || "").trim(),
-      theme: String(formData.get("theme") || "dark"),
-      avatarUrl
+      theme: String(formData.get("theme") || "dark")
     });
     toast("Profile updated.");
-    const fileInput = document.getElementById("profile-image");
-    if (fileInput) fileInput.value = "";
   } catch (error) {
     toast(friendlyError(error), "error");
   }
+});
+
+els.profileImageInput?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  await saveProfileAvatar(file);
 });
 
 els.passwordForm?.addEventListener("submit", async (event) => {
