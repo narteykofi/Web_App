@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Henry's Training Institute Portal</title>
+  <meta name="description" content="A modern Firebase-powered school management portal for administration, academics, and communication.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="site-shell">
+    <section id="auth-view" class="auth-view">
+      <div class="auth-media">
+        <div class="auth-media-overlay"></div>
+        <div class="auth-copy">
+          <span class="eyebrow">Smart School Operations</span>
+          <h1>Run administration, academics, and communication from one modern portal.</h1>
+          <p>Built for Netlify hosting with Firebase Auth, Firestore, and Storage for shared live data.</p>
+          <div class="auth-highlights">
+            <article class="highlight-card">
+              <h3>Role-based access</h3>
+              <p>Admins, teachers, and students see only what belongs to them.</p>
+            </article>
+            <article class="highlight-card">
+              <h3>Live school records</h3>
+              <p>Students, classes, announcements, and preferences persist across devices.</p>
+            </article>
+            <article class="highlight-card">
+              <h3>Personal settings</h3>
+              <p>Each user controls profile photo, password flows, and theme independently.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+      <div class="auth-panel">
+        <div class="brand-row">
+          <div class="brand-mark">HTI</div>
+          <div>
+            <h2>Henry's Training Institute</h2>
+            <p>Management Portal</p>
+          </div>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth-mode="login">Sign In</button>
+          <button class="auth-tab" data-auth-mode="signup">Create Account</button>
+        </div>
+
+        <form id="auth-form" class="stack-form">
+          <div id="signup-name-group" class="form-field hidden">
+            <label for="full-name">Full Name</label>
+            <input id="full-name" name="fullName" type="text" placeholder="Amina Joseph">
+          </div>
+          <div class="form-field">
+            <label for="auth-email">Email</label>
+            <input id="auth-email" name="email" type="email" placeholder="name@henry.edu" required>
+          </div>
+          <div class="form-field">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" name="password" type="password" placeholder="Minimum 6 characters" required>
+          </div>
+          <div id="signup-role-group" class="form-field hidden">
+            <label for="signup-role">Starting Role</label>
+            <select id="signup-role" name="role">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+            </select>
+          </div>
+          <p id="auth-feedback" class="feedback"></p>
+          <button id="auth-submit" class="primary-btn" type="submit">Sign In</button>
+        </form>
+
+        <div class="auth-actions">
+          <button id="reset-password-btn" class="text-btn" type="button">Send password reset email</button>
+          <button id="guest-demo-btn" class="ghost-btn" type="button">Use demo credentials hint</button>
+        </div>
+
+        <div class="auth-footnote">
+          <p>Recommended first step: create the first account using your admin email. The first profile becomes the administrator if no profiles exist yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="app-view" class="app-view hidden">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand-row compact">
+            <div class="brand-mark">HTI</div>
+            <div>
+              <h2>Henry's</h2>
+              <p>Portal</p>
+            </div>
+          </div>
+          <nav id="nav-menu" class="nav-menu">
+            <button class="nav-link active" data-section="overview">Overview</button>
+            <button class="nav-link" data-section="people">People</button>
+            <button class="nav-link" data-section="academics">Academics</button>
+            <button class="nav-link" data-section="communications">Communications</button>
+            <button class="nav-link" data-section="settings">Settings</button>
+          </nav>
+        </div>
+        <div class="sidebar-bottom">
+          <div class="sidebar-photo" id="sidebar-photo"></div>
+          <div>
+            <strong id="sidebar-name">Portal User</strong>
+            <p id="sidebar-role">Role</p>
+          </div>
+          <button id="logout-btn" class="text-btn" type="button">Log out</button>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <span class="eyebrow">School Management Hub</span>
+            <h1 id="page-title">Overview</h1>
+          </div>
+          <div class="topbar-actions">
+            <button id="theme-toggle" class="ghost-btn" type="button">Toggle Theme</button>
+            <button id="refresh-btn" class="ghost-btn" type="button">Refresh Data</button>
+          </div>
+        </header>
+
+        <section id="overview-section" class="app-section active">
+          <div class="hero-banner">
+            <div class="hero-copy">
+              <span class="pill">Live Campus Overview</span>
+              <h2 id="hero-heading">Welcome back.</h2>
+              <p id="hero-subtitle">Track enrollment, classroom delivery, and announcements in one place.</p>
+            </div>
+            <div class="hero-stats-grid">
+              <article class="metric-card">
+                <span>Students</span>
+                <strong id="metric-students">0</strong>
+              </article>
+              <article class="metric-card">
+                <span>Teachers</span>
+                <strong id="metric-teachers">0</strong>
+              </article>
+              <article class="metric-card">
+                <span>Classes</span>
+                <strong id="metric-classes">0</strong>
+              </article>
+              <article class="metric-card">
+                <span>Announcements</span>
+                <strong id="metric-announcements">0</strong>
+              </article>
+            </div>
+          </div>
+
+          <div class="content-grid two-up">
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>Campus Pulse</h3>
+                <span class="pill subtle">Realtime</span>
+              </div>
+              <div id="overview-feed" class="list-stack"></div>
+            </article>
+            <article class="panel-card image-card">
+              <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80" alt="Students walking on campus">
+              <div class="image-card-copy">
+                <h3>School life stays visible</h3>
+                <p>Announcements, classes, attendance context, and people records are all accessible in one interface.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="people-section" class="app-section">
+          <div class="section-toolbar">
+            <div>
+              <h2>People</h2>
+              <p>Manage students, staff profiles, and role assignments.</p>
+            </div>
+            <button id="seed-people-btn" class="ghost-btn admin-only" type="button">Seed Example Data</button>
+          </div>
+
+          <div class="content-grid two-up">
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>Profiles</h3>
+                <span class="pill subtle">Shared records</span>
+              </div>
+              <div id="profiles-list" class="list-stack"></div>
+            </article>
+            <article class="panel-card admin-only">
+              <div class="panel-head">
+                <h3>Add Student</h3>
+                <span class="pill subtle">Administration</span>
+              </div>
+              <form id="student-form" class="stack-form">
+                <div class="form-field">
+                  <label for="student-name">Student Name</label>
+                  <input id="student-name" name="fullName" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="student-grade">Grade</label>
+                  <input id="student-grade" name="grade" type="text" placeholder="Grade 10" required>
+                </div>
+                <div class="form-field">
+                  <label for="student-guardian">Guardian</label>
+                  <input id="student-guardian" name="guardian" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="student-email">Email</label>
+                  <input id="student-email" name="email" type="email">
+                </div>
+                <button class="primary-btn" type="submit">Save Student</button>
+              </form>
+            </article>
+          </div>
+          <article class="panel-card admin-only">
+            <div class="panel-head">
+              <h3>Students Directory</h3>
+              <span class="pill subtle">Administration</span>
+            </div>
+            <div id="students-table" class="table-wrap"></div>
+          </article>
+        </section>
+
+        <section id="academics-section" class="app-section">
+          <div class="section-toolbar">
+            <div>
+              <h2>Academics</h2>
+              <p>Coordinate class delivery, schedules, and instructional coverage.</p>
+            </div>
+          </div>
+
+          <div class="content-grid two-up">
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>Classes</h3>
+                <span class="pill subtle">Timetable</span>
+              </div>
+              <div id="classes-grid" class="tile-grid"></div>
+            </article>
+            <article class="panel-card role-admin-teacher">
+              <div class="panel-head">
+                <h3>Create Class</h3>
+                <span class="pill subtle">Academics</span>
+              </div>
+              <form id="class-form" class="stack-form">
+                <div class="form-field">
+                  <label for="class-title">Class Title</label>
+                  <input id="class-title" name="title" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="class-subject">Subject</label>
+                  <input id="class-subject" name="subject" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="class-teacher">Teacher Name</label>
+                  <input id="class-teacher" name="teacherName" type="text" required>
+                </div>
+                <div class="dual-field">
+                  <div class="form-field">
+                    <label for="class-schedule">Schedule</label>
+                    <input id="class-schedule" name="schedule" type="text" placeholder="Mon / Wed 9:00 AM" required>
+                  </div>
+                  <div class="form-field">
+                    <label for="class-room">Room</label>
+                    <input id="class-room" name="room" type="text" required>
+                  </div>
+                </div>
+                <button class="primary-btn" type="submit">Publish Class</button>
+              </form>
+            </article>
+          </div>
+        </section>
+
+        <section id="communications-section" class="app-section">
+          <div class="section-toolbar">
+            <div>
+              <h2>Communications</h2>
+              <p>Share notices, campus updates, and targeted communication streams.</p>
+            </div>
+          </div>
+
+          <div class="content-grid two-up">
+            <article class="panel-card role-admin-teacher">
+              <div class="panel-head">
+                <h3>Post Announcement</h3>
+                <span class="pill subtle">Broadcast</span>
+              </div>
+              <form id="announcement-form" class="stack-form">
+                <div class="form-field">
+                  <label for="announcement-title">Title</label>
+                  <input id="announcement-title" name="title" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="announcement-audience">Audience</label>
+                  <select id="announcement-audience" name="audience">
+                    <option value="all">All users</option>
+                    <option value="admin">Administrators</option>
+                    <option value="teacher">Teachers</option>
+                    <option value="student">Students</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="announcement-message">Message</label>
+                  <textarea id="announcement-message" name="message" rows="5" required></textarea>
+                </div>
+                <button class="primary-btn" type="submit">Send Announcement</button>
+              </form>
+            </article>
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>Live Noticeboard</h3>
+                <span class="pill subtle">Shared</span>
+              </div>
+              <div id="announcements-list" class="list-stack"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="settings-section" class="app-section">
+          <div class="section-toolbar">
+            <div>
+              <h2>Settings</h2>
+              <p>Manage your profile, theme preference, password, and image.</p>
+            </div>
+          </div>
+
+          <div class="content-grid two-up">
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>My Profile</h3>
+                <span class="pill subtle">Personal</span>
+              </div>
+              <form id="profile-form" class="stack-form">
+                <div class="profile-upload">
+                  <div id="profile-preview" class="profile-preview"></div>
+                  <div>
+                    <label class="upload-label" for="profile-image">Choose Profile Picture</label>
+                    <input id="profile-image" name="profileImage" type="file" accept="image/*">
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="profile-name">Full Name</label>
+                  <input id="profile-name" name="fullName" type="text" required>
+                </div>
+                <div class="form-field">
+                  <label for="profile-title">Professional Title</label>
+                  <input id="profile-title" name="title" type="text" placeholder="Principal, Teacher, Student Leader">
+                </div>
+                <div class="form-field">
+                  <label for="profile-theme">My Theme</label>
+                  <select id="profile-theme" name="theme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </div>
+                <button class="primary-btn" type="submit">Save Profile</button>
+              </form>
+            </article>
+
+            <article class="panel-card">
+              <div class="panel-head">
+                <h3>Password & Access</h3>
+                <span class="pill subtle">Security</span>
+              </div>
+              <form id="password-form" class="stack-form">
+                <div class="form-field">
+                  <label for="new-password">New Password</label>
+                  <input id="new-password" name="newPassword" type="password" placeholder="Minimum 6 characters">
+                </div>
+                <button class="primary-btn" type="submit">Update Password</button>
+              </form>
+              <button id="settings-reset-password-btn" class="ghost-btn wide" type="button">Email me a reset link</button>
+            </article>
+          </div>
+        </section>
+
+        <div id="app-feedback" class="toast-anchor"></div>
+      </main>
+    </section>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

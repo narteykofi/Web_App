@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function authEmail() {
+      return signedIn() && request.auth.token.email != null
+        ? request.auth.token.email
+        : "";
+    }
+
+    function adminWhitelist() {
+      return ["admin@henry.edu", "admin@nexus.edu"];
+    }
+
+    function isAdminEmail() {
+      return authEmail() in adminWhitelist();
+    }
+
+    function ownProfile() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+
+    function hasRole(roleName) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && ownProfile().data.role == roleName;
+    }
+
+    function isAdmin() {
+      return signedIn() && (isAdminEmail() || hasRole("admin"));
+    }
+
+    function isTeacher() {
+      return hasRole("teacher");
+    }
+
+    function validTheme(themeName) {
+      return themeName in ["dark", "light"];
+    }
+
+    match /profiles/{uid} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == authEmail()
+        && validTheme(request.resource.data.theme)
+        && (
+          (isAdminEmail() && request.resource.data.role == "admin") ||
+          (!isAdminEmail() && request.resource.data.role in ["student", "teacher"])
+        );
+
+      allow update: if isAdmin() || (
+        signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && validTheme(request.resource.data.theme)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "fullName",
+          "title",
+          "theme",
+          "avatarUrl"
+        ])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /classes/{classId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() || isTeacher();
+      allow delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || (
+        isTeacher() && resource.data.authorId == request.auth.uid
+      );
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
